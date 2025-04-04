@@ -212,6 +212,7 @@ def main() -> None:
     """
     Entrypoint for scrapper module.
     """
+    print("hello world")
 
 
 if __name__ == "__main__":
