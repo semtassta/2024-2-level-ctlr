@@ -19,8 +19,19 @@ from bs4 import BeautifulSoup
 
 from core_utils.article.article import Article
 from core_utils.config_dto import ConfigDTO
-from core_utils.constants import CRAWLER_CONFIG_PATH
+from core_utils.constants import CRAWLER_CONFIG_PATH, ASSETS_PATH
 
+
+def is_valid_url(url: str) -> bool:
+    '''
+    Checking if url is valid
+    Args:
+        url: url string to check
+    '''
+    standard_pattern = r'https?://\S+|www\.\S+'
+    if re.match(standard_pattern, url) is None:
+        return False
+    return True
 
 class IncorrectSeedURLError(TypeError):
     """
@@ -94,6 +105,7 @@ class Config:
         """
         self.path_to_config = path_to_config
         self._validate_config_content()
+        prepare_environment(ASSETS_PATH)
         values = self._extract_config_content()
         self._seed_urls = values.seed_urls
         self._num_articles = values.total_articles
@@ -125,7 +137,6 @@ class Config:
         """
         Ensure configuration parameters are not corrupt.
         """
-        standard_pattern = r'https?://\S+|www\.\S+'
         with open(self.path_to_config, 'r', encoding='utf-8') as file:
             config_values_dict = json.load(file)
 
@@ -134,7 +145,7 @@ class Config:
                              for seed_url in config_values_dict['seed_urls']))):
                 raise IncorrectSeedURLError('Seed URLs must be a list of strings')
             for seed_url in config_values_dict['seed_urls']:
-                if re.match(standard_pattern, seed_url) is None:
+                if not is_valid_url(seed_url):
                     raise IncorrectSeedURLError(
                         'seed URL does not match standard pattern "https?://(www.)?"')
 
@@ -239,6 +250,11 @@ def make_request(url: str, config: Config) -> requests.models.Response:
     Returns:
         requests.models.Response: A response from a request
     """
+    response = requests.get(url,headers=config.get_headers(),
+                            timeout=config.get_timeout(),
+                            verify=config.get_verify_certificate())
+    return response
+
 
 
 class Crawler:
@@ -256,6 +272,8 @@ class Crawler:
         Args:
             config (Config): Configuration
         """
+        self.config = config
+        self.urls = []
 
     def _extract_url(self, article_bs: BeautifulSoup) -> str:
         """
@@ -267,11 +285,24 @@ class Crawler:
         Returns:
             str: Url from HTML
         """
+        for url in article_bs.find_all('a', href=True):
+            if (isinstance(url['href'], str) and url['href'] is not None and
+                    "gtrksakha/news" in url['href']):
+                return url['href']
+
+
 
     def find_articles(self) -> None:
         """
         Find articles.
         """
+        for seed_url in self.config.get_seed_urls():
+            response = make_request(seed_url, self.config)
+            article_bs = BeautifulSoup(response.text, 'html.parser')
+            extracted_url = self._extract_url(article_bs)
+            if is_valid_url(extracted_url):
+                self.urls.append(extracted_url)
+
 
     def get_search_urls(self) -> list:
         """
@@ -280,6 +311,7 @@ class Crawler:
         Returns:
             list: seed_urls param
         """
+        return self.config.get_seed_urls()
 
 
 # 10
@@ -344,6 +376,14 @@ def prepare_environment(base_path: Union[pathlib.Path, str]) -> None:
     Args:
         base_path (Union[pathlib.Path, str]): Path where articles stores
     """
+    try:
+        pathlib.Path(base_path).mkdir(parents=True)
+    except FileExistsError:
+        for asset in pathlib.Path(base_path).iterdir():
+            asset.unlink()
+        pathlib.Path(base_path).rmdir()
+        pathlib.Path(base_path).mkdir(parents=True)
+
 
 
 
