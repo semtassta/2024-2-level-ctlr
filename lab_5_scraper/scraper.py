@@ -336,6 +336,10 @@ class HTMLParser:
             article_id (int): Article id
             config (Config): Configuration
         """
+        self.full_url = full_url
+        self.article_id = article_id
+        self.config = config
+        self.article = Article(full_url, article_id)
 
     def _fill_article_with_text(self, article_soup: BeautifulSoup) -> None:
         """
@@ -344,6 +348,11 @@ class HTMLParser:
         Args:
             article_soup (bs4.BeautifulSoup): BeautifulSoup instance
         """
+        article_text = ''
+        article = article_soup.find('div', {"class":"news-fulltext"}).findAll('p')
+        for paragraph in article:
+            article_text += ''.join(paragraph.findAll(text=True)) + '\n'
+        self.article.text = article_text
 
     def _fill_article_with_meta_information(self, article_soup: BeautifulSoup) -> None:
         """
@@ -371,6 +380,11 @@ class HTMLParser:
         Returns:
             Union[Article, bool, list]: Article instance
         """
+        response = make_request(self.full_url, self.config)
+        if response.status_code == 200:
+            article_bs = BeautifulSoup(response.text, 'lxml')
+            self._fill_article_with_text(article_bs)
+        return self.article
 
 
 def prepare_environment(base_path: Union[pathlib.Path, str]) -> None:
