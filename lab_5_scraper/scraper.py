@@ -14,6 +14,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from core_utils.article.article import Article
+from core_utils.article.io import to_raw
 from core_utils.config_dto import ConfigDTO
 from core_utils.constants import CRAWLER_CONFIG_PATH, ASSETS_PATH
 
@@ -281,13 +282,13 @@ class Crawler:
         Returns:
             str: Url from HTML
         """
-        url_from_html = ''
-        for url in article_bs.find_all('a', href=True):
+        urls = article_bs.find_all('a', href=lambda href: href and "gtrksakha.ru/news" in href)
+        for url in urls:
             url_href = url['href']
-            if url not in self.urls and 'gtrksakha.ru/news' in url_href:
-                url_from_html = url_href
-                break
-        return url_from_html
+            if url_href in self.urls:
+                continue
+            return url_href
+        return ''
 
 
 
@@ -299,10 +300,11 @@ class Crawler:
             response = make_request(seed_url, self.config)
             if response.status_code == 200:
                 article_bs = BeautifulSoup(response.text, 'lxml')
-                extracted_url = self._extract_url(article_bs)
-                if is_valid_url(extracted_url):
+                while len(self.urls) < self.config.get_num_articles():
+                    extracted_url = self._extract_url(article_bs)
+                    if extracted_url=='':
+                        break
                     self.urls.append(extracted_url)
-
 
     def get_search_urls(self) -> list:
         """
@@ -345,9 +347,9 @@ class HTMLParser:
             article_soup (bs4.BeautifulSoup): BeautifulSoup instance
         """
         article_text = ''
-        article = article_soup.find('div', {"class":"news-fulltext"}).findAll('p')
+        article = article_soup.find('div', {"class":"news-fulltext"}).find_all('p')
         for paragraph in article:
-            article_text += ''.join(paragraph.findAll(text=True)) + '\n'
+            article_text += ''.join(paragraph.find_all(string=True)) + '\n'
         self.article.text = article_text
 
     def _fill_article_with_meta_information(self, article_soup: BeautifulSoup) -> None:
@@ -405,7 +407,14 @@ def main() -> None:
     """
     Entrypoint for scrapper module.
     """
-    # space for creation
+    configuration = Config(path_to_config=CRAWLER_CONFIG_PATH)
+    crawler = Crawler(config=configuration)
+    crawler.find_articles()
+    for i, full_url in enumerate(crawler.urls, start=1):
+        parser = HTMLParser(full_url=full_url, article_id=i, config=configuration)
+        article = parser.parse()
+        if isinstance(article, Article):
+            to_raw(article)
 
 
 if __name__ == "__main__":
