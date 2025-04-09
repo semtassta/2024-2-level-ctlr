@@ -285,6 +285,8 @@ class Crawler:
         urls = article_bs.find_all('a', href=lambda href: href and "gtrksakha.ru/news" in href)
         for url in urls:
             url_href = url['href']
+            if not isinstance(url_href, str):
+                return ''
             if url_href in self.urls:
                 continue
             return url_href
@@ -337,7 +339,8 @@ class HTMLParser:
         self.full_url = full_url
         self.article_id = article_id
         self.config = config
-        self.article = Article(full_url, article_id)
+        article = Article(full_url, article_id)
+        self.article = article
 
     def _fill_article_with_text(self, article_soup: BeautifulSoup) -> None:
         """
@@ -359,6 +362,12 @@ class HTMLParser:
         Args:
             article_soup (bs4.BeautifulSoup): BeautifulSoup instance
         """
+        self.article.title = article_soup.find("h1", class_="news-title").get_text()
+        script_tag = article_soup.find('script', attrs={'type':"application/ld+json"})
+        json_data = json.loads(script_tag.text)
+        # self.article.article_id = parsed_data['mainEntityOfPage']['@id']
+        self.article.author = list(json_data['author']['name'])
+
 
     def unify_date_format(self, date_str: str) -> datetime.datetime:
         """
@@ -382,6 +391,7 @@ class HTMLParser:
         if response.status_code == 200:
             article_bs = BeautifulSoup(response.text, 'lxml')
             self._fill_article_with_text(article_bs)
+            self._fill_article_with_meta_information(article_bs)
         return self.article
 
 
