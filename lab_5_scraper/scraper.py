@@ -10,10 +10,7 @@ import pathlib
 import re
 from typing import Pattern, Union
 
-import lxml
 import requests
-import spacy_udpipe
-import stanza
 from bs4 import BeautifulSoup
 
 from core_utils.article.article import Article
