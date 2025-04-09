@@ -19,11 +19,11 @@ from core_utils.constants import CRAWLER_CONFIG_PATH, ASSETS_PATH
 
 
 def is_valid_url(url: str) -> bool:
-    '''
+    """
     Checking if url is valid
     Args:
         url: url string to check
-    '''
+    """
     standard_pattern = r'https?://\S+|www\.\S+'
     if re.match(standard_pattern, url) is None:
         return False
