@@ -11,7 +11,6 @@ import re
 from typing import Pattern, Union
 
 import lxml
-import networkx
 import requests
 import spacy_udpipe
 import stanza
