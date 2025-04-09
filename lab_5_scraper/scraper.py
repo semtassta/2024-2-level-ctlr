@@ -285,10 +285,13 @@ class Crawler:
         Returns:
             str: Url from HTML
         """
+        url_from_html = ''
         for url in article_bs.find_all('a', href=True):
-            if (isinstance(url['href'], str) and url['href'] is not None and
-                    "gtrksakha/news" in url['href']):
-                return url['href']
+            url_href = url['href']
+            if url not in self.urls and 'gtrksakha.ru/news' in url_href:
+                url_from_html = url_href
+                break
+        return url_from_html
 
 
 
@@ -298,10 +301,11 @@ class Crawler:
         """
         for seed_url in self.config.get_seed_urls():
             response = make_request(seed_url, self.config)
-            article_bs = BeautifulSoup(response.text, 'html.parser')
-            extracted_url = self._extract_url(article_bs)
-            if is_valid_url(extracted_url):
-                self.urls.append(extracted_url)
+            if response.status_code == 200:
+                article_bs = BeautifulSoup(response.text, 'lxml')
+                extracted_url = self._extract_url(article_bs)
+                if is_valid_url(extracted_url):
+                    self.urls.append(extracted_url)
 
 
     def get_search_urls(self) -> list:
