@@ -17,12 +17,12 @@ from bs4 import BeautifulSoup
 from core_utils.article.article import Article
 from core_utils.article.io import to_meta, to_raw
 from core_utils.config_dto import ConfigDTO
-from core_utils.constants import ASSETS_PATH, CRAWLER_CONFIG_PATH
+from core_utils.constants import ASSETS_PATH, CRAWLER_CONFIG_PATH, PROJECT_ROOT
 
 
 def is_valid_url(url: str) -> bool:
     """
-    Checks if url is valid
+    Checks if url is valid.
     Args:
         url: url string to check
     """
@@ -283,14 +283,15 @@ class Crawler:
         Returns:
             str: Url from HTML
         """
-        urls = article_bs.find_all('a', href=lambda href: href and "gtrksakha.ru/news/20" in href)
-        for url in urls:
-            url_href = url['href']
+        urls = article_bs.find_all('a',
+                                   href=lambda href:
+                                   href and href.startswith('https://gtrksakha.ru/news/20'))
+        unique_hrefs = list(set(url['href'] for url in urls))
+        for url_href in unique_hrefs:
             if not isinstance(url_href, str):
                 return ''
-            if url_href in self.urls or url_href in self.get_search_urls():
-                continue
-            return url_href
+            if url_href not in self.urls and url_href not in self.get_search_urls():
+                return url_href
         return ''
 
 
@@ -318,6 +319,50 @@ class Crawler:
         """
         return self.config.get_seed_urls()
 
+class CrawlerRecursive(Crawler):
+    """
+    Recursive crawler implementation.
+    """
+
+    #: Url pattern
+    url_pattern: Union[Pattern, str]
+
+    def __init__(self, config: Config) -> None:
+        """
+        Initialize an instance of the CrawlerRecursive class.
+
+        Args:
+            config (Config): Configuration
+        """
+        super().__init__(config)
+        self.start_url = self.config.get_seed_urls()[0]
+        self.urls_file_path = PROJECT_ROOT / "lab_5_scraper" / "recursive_crawler_urls.json"
+        if not self.urls_file_path.is_file():
+            with self.urls_file_path.open('w') as urls_file:
+                json.dump([], urls_file)
+
+
+    def find_articles(self) -> None:
+        """
+        Find articles.
+        """
+        with self.urls_file_path.open('r') as urls_file:
+            self.urls = json.load(urls_file)
+            print('URLs already collected:', len(self.urls))
+        if len(self.urls) >= self.config.get_num_articles():
+            return
+        for seed_url in self.config.get_seed_urls():
+            response = make_request(seed_url, self.config)
+            if response.status_code == 200:
+                article_bs = BeautifulSoup(response.text, 'lxml')
+                while len(self.urls) < self.config.get_num_articles():
+                    extracted_url = self._extract_url(article_bs)
+                    if extracted_url=='':
+                        break
+                    self.urls.append(extracted_url)
+                    with self.urls_file_path.open('w') as urls_file:
+                        json.dump(self.urls, urls_file, indent=4)
+                    self.find_articles()
 
 # 10
 # 4, 6, 8, 10
@@ -373,7 +418,6 @@ class HTMLParser:
         self.article.title = article_soup.find("h1", class_="news-title").get_text()
         script_tag = article_soup.find('script', attrs={'type':"application/ld+json"})
         json_data = json.loads(script_tag.text)
-        # self.article.article_id = parsed_data['mainEntityOfPage']['@id']
         self.article.author = [json_data['author']['name']]
         raw_date = str(json_data['datePublished'])
         self.article.date = self.unify_date_format(raw_date)
@@ -421,9 +465,6 @@ def prepare_environment(base_path: Union[pathlib.Path, str]) -> None:
         pathlib.Path(base_path).mkdir(parents=True)
     except FileExistsError:
         shutil.rmtree(base_path)
-        # for asset in pathlib.Path(base_path).iterdir():
-        #     asset.unlink()
-        # pathlib.Path(base_path).rmdir()
         pathlib.Path(base_path).mkdir(parents=True)
 
 
@@ -434,14 +475,19 @@ def main() -> None:
     Entrypoint for scrapper module.
     """
     configuration = Config(path_to_config=CRAWLER_CONFIG_PATH)
-    crawler = Crawler(config=configuration)
-    crawler.find_articles()
-    for i, full_url in enumerate(crawler.urls, start=1):
-        parser = HTMLParser(full_url=full_url, article_id=i, config=configuration)
-        article = parser.parse()
-        if isinstance(article, Article):
-            to_raw(article)
-            to_meta(article)
+    # crawler = Crawler(config=configuration)
+    # crawler.find_articles()
+    # for i, full_url in enumerate(crawler.urls, start=1):
+    #     parser = HTMLParser(full_url=full_url, article_id=i, config=configuration)
+    #     article = parser.parse()
+    #     if isinstance(article, Article):
+    #         to_raw(article)
+    #         to_meta(article)
+
+
+    recursive_crawler = CrawlerRecursive(config=configuration)
+    recursive_crawler.find_articles()
+    print(0)
 
 
 if __name__ == "__main__":
