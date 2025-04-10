@@ -88,7 +88,6 @@ class IncorrectVerifyError(TypeError):
         self.message = message
         super().__init__(self.message)
 
-
 class Config:
     """
     Class for unpacking and validating configurations.
@@ -254,7 +253,6 @@ def make_request(url: str, config: Config) -> requests.models.Response:
     return response
 
 
-
 class Crawler:
     """
     Crawler implementation.
@@ -293,8 +291,6 @@ class Crawler:
             if url_href not in self.urls and url_href not in self.get_search_urls():
                 return url_href
         return ''
-
-
 
     def find_articles(self) -> None:
         """
@@ -426,7 +422,6 @@ class HTMLParser:
                                article_soup.find_all('a',
                                                      {'class': "badge badge-rubric me-2"})]
 
-
     def unify_date_format(self, date_str: str) -> datetime.datetime:
         """
         Unify date format.
@@ -466,8 +461,6 @@ def prepare_environment(base_path: Union[pathlib.Path, str]) -> None:
     except FileExistsError:
         shutil.rmtree(base_path)
         pathlib.Path(base_path).mkdir(parents=True)
-
-
 
 
 def main() -> None:

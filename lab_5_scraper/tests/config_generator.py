@@ -1,5 +1,4 @@
 # pylint: disable=too-many-arguments
-# pylint: disable=too-many-arguments
 """
 Generate config with flexible params for testing purposes.
 """
