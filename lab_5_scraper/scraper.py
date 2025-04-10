@@ -348,7 +348,7 @@ class CrawlerRecursive(Crawler):
         """
         with self.urls_file_path.open('r') as urls_file:
             self.urls = json.load(urls_file)
-            print('URLs already collected:', len(self.urls))
+            print('URLs already collected by recursive crawler:', len(self.urls))
         if len(self.urls) >= self.config.get_num_articles():
             return
         for seed_url in self.config.get_seed_urls():
@@ -475,19 +475,20 @@ def main() -> None:
     Entrypoint for scrapper module.
     """
     configuration = Config(path_to_config=CRAWLER_CONFIG_PATH)
-    # crawler = Crawler(config=configuration)
-    # crawler.find_articles()
-    # for i, full_url in enumerate(crawler.urls, start=1):
-    #     parser = HTMLParser(full_url=full_url, article_id=i, config=configuration)
-    #     article = parser.parse()
-    #     if isinstance(article, Article):
-    #         to_raw(article)
-    #         to_meta(article)
+    crawler = Crawler(config=configuration)
+    crawler.find_articles()
+    for i, full_url in enumerate(crawler.urls, start=1):
+        parser = HTMLParser(full_url=full_url, article_id=i, config=configuration)
+        article = parser.parse()
+        if isinstance(article, Article):
+            to_raw(article)
+            to_meta(article)
+    print("Crawler finished working.")
 
 
     recursive_crawler = CrawlerRecursive(config=configuration)
     recursive_crawler.find_articles()
-    print(0)
+    print("Recursive crawler finished working.")
 
 
 if __name__ == "__main__":
