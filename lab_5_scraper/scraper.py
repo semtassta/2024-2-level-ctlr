@@ -8,6 +8,7 @@ import json
 # pylint: disable=too-many-arguments, too-many-instance-attributes, unused-import, undefined-variable, unused-argument
 import pathlib
 import re
+import shutil
 from typing import Pattern, Union
 
 import requests
@@ -21,7 +22,7 @@ from core_utils.constants import ASSETS_PATH, CRAWLER_CONFIG_PATH
 
 def is_valid_url(url: str) -> bool:
     """
-    Checking if url is valid
+    Checks if url is valid
     Args:
         url: url string to check
     """
@@ -282,12 +283,12 @@ class Crawler:
         Returns:
             str: Url from HTML
         """
-        urls = article_bs.find_all('a', href=lambda href: href and "gtrksakha.ru/news" in href)
+        urls = article_bs.find_all('a', href=lambda href: href and "gtrksakha.ru/news/20" in href)
         for url in urls:
             url_href = url['href']
             if not isinstance(url_href, str):
                 return ''
-            if url_href in self.urls:
+            if url_href in self.urls or url_href in self.get_search_urls():
                 continue
             return url_href
         return ''
@@ -349,11 +350,18 @@ class HTMLParser:
         Args:
             article_soup (bs4.BeautifulSoup): BeautifulSoup instance
         """
-        article_text = ''
-        article = article_soup.find('div', {"class":"news-fulltext"}).find_all('p')
-        for paragraph in article:
-            article_text += ''.join(paragraph.find_all(string=True)) + '\n'
-        self.article.text = article_text
+        try:
+            article_text = ''
+            article = article_soup.find('div', {"class":"news-fulltext"}).find_all('p')
+            for paragraph in article:
+                article_text += ''.join(paragraph.find_all(string=True)) + '\n'
+            self.article.text = article_text
+        except AttributeError:
+            article_text = ''
+            article = article_soup.find('div', {"class": "news-fulltext"}).find_all('p')
+            for paragraph in article:
+                article_text += ''.join(paragraph.find_all(string=True)) + '\n'
+            self.article.text = article_text
 
     def _fill_article_with_meta_information(self, article_soup: BeautifulSoup) -> None:
         """
@@ -385,8 +393,7 @@ class HTMLParser:
         Returns:
             datetime.datetime: Datetime object
         """
-        article_datetime = datetime.datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S+09:00')
-        return article_datetime
+        return datetime.datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S+09:00')
 
     def parse(self) -> Union[Article, bool, list]:
         """
@@ -413,9 +420,10 @@ def prepare_environment(base_path: Union[pathlib.Path, str]) -> None:
     try:
         pathlib.Path(base_path).mkdir(parents=True)
     except FileExistsError:
-        for asset in pathlib.Path(base_path).iterdir():
-            asset.unlink()
-        pathlib.Path(base_path).rmdir()
+        shutil.rmtree(base_path)
+        # for asset in pathlib.Path(base_path).iterdir():
+        #     asset.unlink()
+        # pathlib.Path(base_path).rmdir()
         pathlib.Path(base_path).mkdir(parents=True)
 
 
