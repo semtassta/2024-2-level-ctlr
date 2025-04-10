@@ -366,7 +366,13 @@ class HTMLParser:
         script_tag = article_soup.find('script', attrs={'type':"application/ld+json"})
         json_data = json.loads(script_tag.text)
         # self.article.article_id = parsed_data['mainEntityOfPage']['@id']
-        self.article.author = list(json_data['author']['name'])
+        self.article.author = [json_data['author']['name']]
+        raw_date = str(json_data['datePublished'])
+        self.article.date = self.unify_date_format(raw_date)
+        self.article.topics = [rubric.get_text()
+                               for rubric in
+                               article_soup.find_all('a',
+                                                     {'class': "badge badge-rubric me-2"})]
 
 
     def unify_date_format(self, date_str: str) -> datetime.datetime:
@@ -379,6 +385,8 @@ class HTMLParser:
         Returns:
             datetime.datetime: Datetime object
         """
+        article_datetime = datetime.datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S+09:00')
+        return article_datetime
 
     def parse(self) -> Union[Article, bool, list]:
         """
