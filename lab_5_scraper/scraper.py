@@ -467,6 +467,7 @@ def main() -> None:
     """
     Entrypoint for scrapper module.
     """
+    print("Crawler started working.")
     configuration = Config(path_to_config=CRAWLER_CONFIG_PATH)
     crawler = Crawler(config=configuration)
     crawler.find_articles()
@@ -476,9 +477,9 @@ def main() -> None:
         if isinstance(article, Article):
             to_raw(article)
             to_meta(article)
+            print("URLs already collected by crawler:", i)
     print("Crawler finished working.")
-
-
+    print("Recursive crawler started working.")
     recursive_crawler = CrawlerRecursive(config=configuration)
     recursive_crawler.find_articles()
     print("Recursive crawler finished working.")

@@ -5,10 +5,15 @@
         "https://gtrksakha.ru/rubrics/culture/",
         "https://gtrksakha.ru/rubrics/sports/"
     ],
-    "headers": {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"},
+    "headers": {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 YaBrowser/25.2.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+        "Accept-Language": "ru,en;q=0.9,ko;q=0.8,fr;q=0.7",
+        "Cookie": "_ym_uid=1743924072654181973; _ym_d=1743924072; _csrf-frontend=851ddb6be7eab6c3e6245e5402aadaf82e64b21647202158d07903d86ed1df45a%3A2%3A%7Bi%3A0%3Bs%3A14%3A%22_csrf-frontend%22%3Bi%3A1%3Bs%3A32%3A%22-UCxCJznZJUOwYS6Ktk0XyaS47w1l03J%22%3B%7D; _ym_isad=1; _ym_visorc=w"
+    },
     "total_articles_to_find_and_parse": 100,
     "encoding": "utf-8",
-    "timeout": 50,
+    "timeout": 2,
     "should_verify_certificate": true,
     "headless_mode": true,
     "seed_urls_all_topics": ["https://gtrksakha.ru/news/",
