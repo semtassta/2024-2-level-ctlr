@@ -9,6 +9,8 @@ import json
 import pathlib
 import re
 import shutil
+from random import randint
+from time import sleep
 from typing import Pattern, Union
 
 import requests
@@ -261,6 +263,7 @@ def make_request(url: str, config: Config) -> requests.models.Response:
     Returns:
         requests.models.Response: A response from a request
     """
+    sleep(randint(1, 10))
     response = requests.get(url,headers=config.get_headers(),
                             timeout=config.get_timeout(),
                             verify=config.get_verify_certificate())
