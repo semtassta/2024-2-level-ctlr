@@ -193,7 +193,6 @@ class Config:
         Returns:
             list[str]: Seed urls
         """
-        # articles_needed =
         return self._seed_urls
 
     def get_num_articles(self) -> int:
@@ -353,28 +352,6 @@ class CrawlerRecursive(Crawler):
                 json.dump([], urls_file)
 
 
-    # def find_articles(self) -> None:
-    #     """
-    #     Find articles.
-    #     """
-    #     with self.urls_file_path.open('r') as urls_file:
-    #         self.urls = json.load(urls_file)
-    #         print('URLs already collected by recursive crawler:', len(self.urls))
-    #     if len(self.urls) >= self.config.get_num_articles():
-    #         return
-    #     for seed_url in self.config.get_seed_urls():
-    #         response = make_request(seed_url, self.config)
-    #         if response.status_code == 200:
-    #             article_bs = BeautifulSoup(response.text, 'lxml')
-    #             while len(self.urls) < self.config.get_num_articles():
-    #                 extracted_url = self._extract_url(article_bs)
-    #                 if extracted_url=='':
-    #                     break
-    #                 self.urls.append(extracted_url)
-    #                 with self.urls_file_path.open('w') as urls_file:
-    #                     json.dump(self.urls, urls_file, indent=4)
-    #                 self.find_articles()
-
     def find_articles_bar(self, progress_bar: tqdm) -> None:
         """
         Find articles.
@@ -504,26 +481,28 @@ def main() -> None:
     """
     Entrypoint for scrapper module.
     """
-    print("Crawler started working.")
+    print("Crawler started working. Progress:")
     configuration = Config(path_to_config=CRAWLER_CONFIG_PATH)
     crawler = Crawler(config=configuration)
     crawler.find_articles()
+
+    progress_bar = tqdm(total=crawler.config.get_num_articles())
     for i, full_url in enumerate(crawler.urls, start=1):
         parser = HTMLParser(full_url=full_url, article_id=i, config=configuration)
         article = parser.parse()
         if isinstance(article, Article):
             to_raw(article)
             to_meta(article)
-            print("URLs already collected by crawler:", i)
+            progress_bar.update(1)
     print("Crawler finished working.")
 
     print("Recursive crawler started working.\nProgress:")
     recursive_crawler = CrawlerRecursive(config=configuration)
     with recursive_crawler.urls_file_path.open('r') as urls_file:
         urls_collected = json.load(urls_file)
-    progress_bar = tqdm(total=recursive_crawler.config.get_num_articles(),
+    progress_bar_recursive = tqdm(total=recursive_crawler.config.get_num_articles(),
                         initial=len(urls_collected))
-    recursive_crawler.find_articles_bar(progress_bar)
+    recursive_crawler.find_articles_bar(progress_bar_recursive)
     print("Recursive crawler finished working.")
 
 
